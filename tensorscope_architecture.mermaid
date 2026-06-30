@@ -1,0 +1,38 @@
+flowchart TB
+    subgraph Browser["Browser (static, free, no backend)"]
+        UI["React UI<br/>DAG Canvas + Builder"]
+        Engine["Shape Engine<br/>(layer registry, M1)"]
+        ORT["ONNX Runtime Web<br/>(Tier 2 smoke test)"]
+        TFJS["TensorFlow.js<br/>(Tier 3 sanity training)"]
+        HFJS["transformers.js<br/>(HF models w/ ONNX export)"]
+        UI --> Engine
+        UI --> ORT
+        UI --> TFJS
+        UI --> HFJS
+    end
+
+    subgraph Relay["Thin Stateless Relay<br/>(Cloudflare Worker / Vercel fn)"]
+        R["Forwards user's own<br/>Kaggle credentials only.<br/>Never stores anything."]
+    end
+
+    subgraph Kaggle["Kaggle (user's own account + quota)"]
+        K1["Push notebook<br/>(kernels push)"]
+        K2["Poll status<br/>(kernels status)"]
+        K3["Pull output<br/>(kernels output)"]
+        K1 --> K2 --> K3
+    end
+
+    subgraph GHA["GitHub Actions"]
+        APK["Build debug-signed APK<br/>(M13 benchmark builder)"]
+    end
+
+    UI -- "credentials entered\nclient-side only" --> R
+    R -- "format conversion,\npruning/quant,\nfull training (Tier 4)" --> K1
+    K3 -- "weights / results" --> UI
+    UI -- "converted model" --> APK
+    APK -- "downloadable .apk" --> UI
+
+    classDef free fill:#e6f4ea,stroke:#2e7d32;
+    classDef relay fill:#fff3e0,stroke:#e65100;
+    class Browser free;
+    class Relay,Kaggle,GHA relay;
